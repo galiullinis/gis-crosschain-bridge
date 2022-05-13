@@ -34,7 +34,7 @@ export default {
     bsctestnet: {
       url: "https://data-seed-prebsc-2-s3.binance.org:8545/",
       chainId: 97,
-      accounts: [process.env.RINKEBY_PRIVATE_KEY]
+      accounts: [process.env.BSC_TESTNET_API_KEY]
     }
   },
   etherscan: {
