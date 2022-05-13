@@ -5,6 +5,8 @@ import { task } from "hardhat/config";
 import 'dotenv/config';
 import 'hardhat-gas-reporter'
 import 'hardhat-contract-sizer'
+import './tasks/swap.task'
+import './tasks/redeem.task'
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
