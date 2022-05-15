@@ -19,7 +19,6 @@ describe("GisBridge", () => {
 
     beforeEach(async () => {
         [owner, account1, account2, validator] = await ethers.getSigners()
-
         const GisBridge = await ethers.getContractFactory("GisBridge", owner)
         gisBridgeETH = await GisBridge.deploy(ETHChainId)
         await gisBridgeETH.deployed()
@@ -47,79 +46,79 @@ describe("GisBridge", () => {
     })
 
     it("swap without include token should be reverted", async () => {
-        await expect(gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)).to.be.revertedWith("chain is not supported")
+        await expect(gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)).to.be.revertedWith("chain is not supported")
     })
 
     it("redeem with unsupported chainId should be reverted", async () => {
         await gisBridgeETH.includeToken(erc20TokenETH.address, BSCChainId)
-        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)
+        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)
         const receipt = await tx.wait()
-        const [from, to, amount, nonce, chainId] = receipt.events[1].args
+        const [from, to, amount, nonce, chainIdFrom, chainIdTo] = receipt.events[1].args
         
         const msg = ethers.utils.solidityKeccak256(
-            ["address", "uint256", "uint256", "uint256"],
-            [to, amount, nonce, chainId]
+            ["address", "uint256", "uint256", "uint256", "uint256"],
+            [to, amount, nonce, chainIdFrom, chainIdTo]
         )
         const signature = await owner.signMessage(ethers.utils.arrayify(msg))
         const splitSig = ethers.utils.splitSignature(signature)
         
-        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, amount, nonce, 10, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("chain is not supported")
+        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, from, amount, nonce, ETHChainId, 10, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("chain is not supported")
     })
 
     it("redeem multiple times should be reverted", async () => {
         await gisBridgeETH.includeToken(erc20TokenETH.address, BSCChainId)
-        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)
+        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)
         const receipt = await tx.wait()
-        const [from, to, amount, nonce, chainId] = receipt.events[1].args
+        const [from, to, amount, nonce, chainIdFrom, chainIdTo] = receipt.events[1].args
         
         const msg = ethers.utils.solidityKeccak256(
-            ["address", "uint256", "uint256", "uint256"],
-            [to, amount, nonce, chainId]
+            ["address", "address", "uint256", "uint256", "uint256", "uint256"],
+            [from, to, amount, nonce, chainIdFrom, chainIdTo]
         )
         const signature = await owner.signMessage(ethers.utils.arrayify(msg))
         const splitSig = ethers.utils.splitSignature(signature)
         
-        const tx2 = await gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, amount, nonce, chainId, splitSig.v, splitSig.r, splitSig.s)
-        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, amount, nonce, chainId, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("transfer in progress")
+        const tx2 = await gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, from, amount, nonce, chainIdFrom, chainIdTo, splitSig.v, splitSig.r, splitSig.s)
+        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, from, amount, nonce, chainIdFrom, chainIdTo, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("transfer in progress")
     })
 
     it("try multiple swaps", async () => {
         await gisBridgeETH.includeToken(erc20TokenETH.address, BSCChainId)
-        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)
-        await expect(gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)).to.be.revertedWith("transfer in progress")
+        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)
+        await expect(gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)).to.be.revertedWith("transfer in progress")
     })
 
     it("check sign failure with redeem incorrect token amount", async () => {
         await gisBridgeETH.includeToken(erc20TokenETH.address, BSCChainId)
-        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)
+        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)
         const receipt = await tx.wait()
-        const [from, to, amount, nonce, chainId] = receipt.events[1].args
+        const [from, to, amount, nonce, chainIdFrom, chainIdTo] = receipt.events[1].args
         
         const msg = ethers.utils.solidityKeccak256(
-            ["address", "uint256", "uint256", "uint256"],
-            [to, amount, nonce, chainId]
+            ["address","address","uint256","uint256","uint256","uint256"],
+            [from, to, amount, nonce, chainIdFrom, chainIdTo]
         )
         const signature = await owner.signMessage(ethers.utils.arrayify(msg))
         const splitSig = ethers.utils.splitSignature(signature)
         
-        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, 1, nonce, chainId, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("check sign failure")
+        await expect(gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, from, 1, nonce, chainIdFrom, chainIdTo, splitSig.v, splitSig.r, splitSig.s)).to.be.revertedWith("check sign failure")
         
     })
 
     it("swap and redeem", async () => {
         await gisBridgeETH.includeToken(erc20TokenETH.address, BSCChainId)
-        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, BSCChainId)
+        const tx = await gisBridgeETH.connect(account1).swap(erc20TokenETH.address, account2.address, erc20ETHSwapAmount, 1, ETHChainId, BSCChainId)
         const receipt = await tx.wait()
-        const [from, to, amount, nonce, chainId] = receipt.events[1].args
+        const [from, to, amount, nonce, chainIdFrom, chainIdTo] = receipt.events[1].args
         
         const msg = ethers.utils.solidityKeccak256(
-            ["address", "uint256", "uint256", "uint256"],
-            [to, amount, nonce, chainId]
+            ["address","address", "uint256", "uint256", "uint256","uint256"],
+            [from, to, amount, nonce, chainIdFrom, chainIdTo]
         )
         const signature = await owner.signMessage(ethers.utils.arrayify(msg))
         const splitSig = ethers.utils.splitSignature(signature)
         
-        const tx2 = await gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, amount, nonce, chainId, splitSig.v, splitSig.r, splitSig.s)
+        const tx2 = await gisBridgeBSC.connect(account2).redeem(erc20TokenBSC.address, from, amount, nonce, chainIdFrom, chainIdTo, splitSig.v, splitSig.r, splitSig.s)
         
         expect(await erc20TokenETH.balanceOf(account1.address)).to.eq(erc20ETHMintAmount - erc20ETHSwapAmount)
         expect(await erc20TokenBSC.balanceOf(account2.address)).to.eq(erc20ETHSwapAmount)

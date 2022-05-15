@@ -2,12 +2,12 @@ import hre from 'hardhat';
 import "dotenv/config";
 
 const ethers = hre.ethers
-const deployChainId = process.env.DEPLOY_CHAIN_ID
 
 async function main() {
+    const { chainId } = await ethers.provider.getNetwork()
     const [signer] = await ethers.getSigners()
     const GisBridge = await ethers.getContractFactory('GisBridge', signer)
-    const gisBridge = await GisBridge.deploy(deployChainId)
+    const gisBridge = await GisBridge.deploy(chainId)
     await gisBridge.deployed()
     console.log(gisBridge.address)
 }
